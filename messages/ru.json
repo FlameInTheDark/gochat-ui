@@ -1,4 +1,13 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from ru!"
+	"hello_world": "Привет Мир! Это {name}!",
+	"counter_button": "Счётчик: {count}",
+	"locale_button_text": "Сменить локаль",
+	"login_title": "Добро пожаловать в GoChat!",
+	"login_username_label": "Имя пользователя",
+	"login_password_label": "Пароль",
+	"login_button": "Войти",
+	"welcome_back": "С возвращением, {name}!",
+	"continue_button": "Перейти в приложение",
+	"app_welcome": "Выберите сервер или чат, чтобы начать!"
 }
