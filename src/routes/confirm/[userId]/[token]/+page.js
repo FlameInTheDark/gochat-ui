@@ -2,10 +2,11 @@ import { browser } from '$app/environment';
 
 /** @type {import('./$types').PageLoad} */
 export function load({ params }) {
+    const { userId, token } = params;
+
     if (!browser) {
         console.log(`SSR Load for /confirm route. Params:`, params);
     }
-    const { userId, token } = params;
 
     console.log(`Loading confirmation page for userId: ${userId}, token: ${token}`);
 

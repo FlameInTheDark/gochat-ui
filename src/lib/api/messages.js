@@ -1,27 +1,8 @@
+import { apiClient } from './client';
+
 /** @typedef {{id: string, authorId: string, authorName: string, authorAvatarUrl: string | null, timestamp: string, content: string, edited?: boolean }} Message */
 /** @typedef {Record<string, Message[]>} MockMessageData */
-
-// Mock message data keyed by channel ID
-/** @type {MockMessageData} */
-const mockMessagesByChannel = {
-    '1001': [ // #general in Svelte Nerds (formerly svelte-1)
-        { id: '777000001', authorId: '555000222', authorName: 'Bob', authorAvatarUrl: 'https://i.pravatar.cc/40?img=1', timestamp: '2023-10-26T10:00:00Z', content: 'Morning everyone! Any cool SvelteKit updates?' },
-        { id: '777000002', authorId: '555000111', authorName: 'Alice', authorAvatarUrl: null, timestamp: '2023-10-26T10:01:30Z', content: 'Just the usual bug fixes I think. Check the repo!' },
-        { id: '777000003', authorId: '555000333', authorName: 'Charlie', authorAvatarUrl: 'https://i.pravatar.cc/40?img=3', timestamp: '2023-10-26T10:05:00Z', content: 'Anyone tried the new Paraglide JS library? Looks interesting for i18n.', edited: true },
-    ],
-    '1002': [ // #help in Svelte Nerds (formerly svelte-2)
-        { id: '777000004', authorId: '555000444', authorName: 'David', authorAvatarUrl: null, timestamp: '2023-10-26T11:20:00Z', content: 'How do I bind component props reactively?' },
-    ],
-    '2001': [ // #general in Tailwind Fanatics (formerly tw-1)
-        { id: '777000005', authorId: '555000555', authorName: 'Eve', authorAvatarUrl: 'https://i.pravatar.cc/40?img=5', timestamp: '2023-10-26T09:15:00Z', content: 'Loving the new `container` queries!' },
-    ],
-    '3001': [ // #frontend in GoChat Dev (formerly gc-1)
-        { id: '777000006', authorId: '555000666', authorName: 'Frank', authorAvatarUrl: 'https://i.pravatar.cc/40?img=7', timestamp: '2023-10-25T15:00:00Z', content: 'Started working on the login page UI.' },
-        { id: '777000007', authorId: '555000111', authorName: 'Alice', authorAvatarUrl: null, timestamp: '2023-10-25T15:02:00Z', content: 'Nice! Using SvelteKit?' },
-        { id: '777000008', authorId: '555000666', authorName: 'Frank', authorAvatarUrl: 'https://i.pravatar.cc/40?img=7', timestamp: '2023-10-25T15:03:00Z', content: 'Yep, with Tailwind for styling.' },
-    ],
-    // Add more channels as needed...
-};
+/** @typedef {import('$lib/types').AttachmentUpload} AttachmentUpload */
 
 // Mock message data for DMs, keyed by the OTHER user's ID (or group DM ID)
 /** @type {MockMessageData} */
@@ -45,18 +26,44 @@ const mockMessagesByDm = {
 };
 
 /**
- * Fetches the list of messages for a given channel.
- * @param {string} channelId The ID of the channel.
- * @returns {Promise<Message[]>}
+ * Fetches the list of messages for a given channel from the API.
+ * @param {bigint} channelId
+ * @returns {Promise<import('$lib/types').Message[]>}
  */
-export async function getMessages(channelId) {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 180));
+export async function getChannelMessages(channelId) {
+    try {
+        const rawMessages = await apiClient(`/message/channel/${channelId}`, 'GET');
+        
+        if (!Array.isArray(rawMessages)) {
+            console.error("API response for messages was not an array:", rawMessages);
+            return []; // Return empty if response format is unexpected
+        }
 
-    // In a real app, fetch from `/api/channels/${channelId}/messages`
-    // You might also add parameters for pagination (e.g., before/after message IDs)
-    console.log(`Returning mock messages for channel ${channelId}`);
-    return Promise.resolve(mockMessagesByChannel[channelId] || []);
+        // Transform messages to match frontend types and prepend URL
+        const messages = rawMessages.map(msg => {
+            const transformedAttachments = (msg.attachments || []).map(att => ({
+                ...att,
+                url: `http://localhost/${att.url.startsWith('/') ? att.url.substring(1) : att.url}`, 
+                content_type: 'unknown' // Add placeholder
+            }));
+            
+            return {
+                id: msg.id, 
+                channel_id: msg.channel_id, 
+                content: msg.content ?? '',
+                authorId: msg.author?.id, 
+                authorName: msg.author?.name,
+                authorAvatarUrl: null, // TODO: Map avatar URL if provided by API
+                timestamp: msg.updated_at || new Date().toISOString(), // Use updated_at or placeholder
+                attachments: transformedAttachments, 
+            };
+        });
+
+        return messages || [];
+    } catch (error) {
+        console.error(`Error fetching messages for channel ${channelId}:`, error);
+        return []; 
+    }
 }
 
 /**
@@ -73,4 +80,95 @@ export async function getMessagesForDm(userId) {
     return Promise.resolve(mockMessagesByDm[userId] || []);
 }
 
-// Add more message functions later (e.g., sendMessage, editMessage, deleteMessage) 
+/**
+ * Sends a message to a channel.
+ * @param {bigint} channelId
+ * @param {string} content
+ * @param {bigint[]} [attachmentIds]
+ * @returns {Promise<import('$lib/types').Message>}
+ */
+export async function sendMessage(channelId, content, attachmentIds = []) {
+    // Pass BigInts directly, apiClient will handle serialization
+    const payload = { 
+        content: content, 
+        attachments: attachmentIds 
+    };
+    try {
+        const newMessage = await apiClient(`/message/channel/${channelId.toString()}`, 'POST', payload);
+        return newMessage;
+    } catch (error) {
+        console.error(`Failed to send message to channel ${channelId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Updates an existing message.
+ * @param {bigint} messageId
+ * @param {string} content
+ */
+export async function updateMessage(messageId, content) {
+    const payload = { content: content };
+    try {
+        // Explicitly convert messageId to string for URL path
+        const updatedMessage = await apiClient(`/message/${messageId.toString()}`, 'POST', payload);
+        return updatedMessage;
+    } catch (error) {
+        console.error(`Failed to update message ${messageId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Creates an attachment upload request.
+ * @param {bigint} channelId
+ * @param {{filename: string, file_size: number, width?: number, height?: number}} attachmentData
+ */
+export async function createAttachmentUpload(channelId, attachmentData) {
+    try {
+        // Explicitly convert channelId to string for URL path
+        const uploadData = await apiClient(`/message/channel/${channelId.toString()}/attachment`, 'POST', attachmentData);
+        return uploadData;
+    } catch (error) {
+        console.error(`Failed to create attachment upload for channel ${channelId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Requests an upload URL for an attachment.
+ * @param {bigint} channelId The channel ID.
+ * @param {{filename: string, fileSize: number, width?: number, height?: number}} fileInfo File metadata.
+ * @returns {Promise<import('$lib/types').AttachmentUpload>} 
+ */
+export async function requestAttachmentUpload(channelId, fileInfo) {
+    try {
+        const response = await apiClient(`/message/channel/${channelId.toString()}/attachment`, 'POST', {
+            filename: fileInfo.filename,
+            file_size: fileInfo.fileSize,
+            width: fileInfo.width,
+            height: fileInfo.height
+        });
+        return response; 
+    } catch (error) {
+        console.error(`Failed to request attachment upload for channel ${channelId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Deletes a specific message.
+ * @param {bigint} channelId The ID of the channel the message is in.
+ * @param {bigint} messageId The ID of the message to delete.
+ * @returns {Promise<any>} // API likely returns success status or maybe the deleted message
+ */
+export async function deleteMessage(channelId, messageId) {
+    try {
+        // Explicitly convert IDs to strings for URL path
+        const response = await apiClient(`/message/channel/${channelId.toString()}/${messageId.toString()}`, 'DELETE');
+        return response;
+    } catch (error) {
+        console.error(`Failed to delete message ${messageId} from channel ${channelId}:`, error);
+        throw error;
+    }
+} 

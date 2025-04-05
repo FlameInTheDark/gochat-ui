@@ -1,16 +1,18 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
 
-    /** @type {string | null} Server icon image URL */
-    export let imageUrl = null;
+    /** @type {bigint | null} Server icon ID */
+    export let iconId: bigint | null = null;
     /** @type {string} Server name (used for initials fallback and tooltip) */
     export let name = 'Server';
     /** @type {boolean} Whether this server is currently selected */
     export let active = false;
-    /** @type {boolean} Whether this server has unread messages (for notification indicator) */
-    export let hasNotification = false;
-    /** @type {string} ID of the server */
+    /** @type {string} ID of the server (passed as string) */
     export let id: string;
+
+    // Placeholder logic for constructing image URL from ID
+    // TODO: Replace with actual CDN/API endpoint logic
+    $: actualImageUrl = iconId ? `/images/icons/${iconId.toString()}.png` : null;
 
     // Generate initials from the server name
     $: initials = name
@@ -51,15 +53,10 @@
     <!-- Hover shape: controlled by class:hover:rounded-2xl -->
     <!-- Basic tooltip: controlled by title attribute -->
 
-    {#if imageUrl}
-        <img src={imageUrl} alt={name} class="w-full h-full object-cover rounded-full transition-all duration-200 ease-in-out group-hover:rounded-2xl {active ? 'rounded-2xl' : ''}" />
+    {#if actualImageUrl}
+        <img src={actualImageUrl} alt={name} class="w-full h-full object-cover rounded-full transition-all duration-200 ease-in-out group-hover:rounded-2xl {active ? 'rounded-2xl' : ''}" />
     {:else}
         <span class="text-white font-medium select-none">{initials}</span>
-    {/if}
-
-    {#if hasNotification}
-        <!-- Notification Indicator (simple white bar) -->
-        <div class="absolute left-0 top-1/4 h-1/2 w-1 bg-white rounded-r-full transform -translate-x-1"></div>
     {/if}
 
     <!-- TODO: Implement better Tooltip component -->

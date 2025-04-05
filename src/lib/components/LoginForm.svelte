@@ -16,14 +16,12 @@
         errorMessage = '';
         console.log('Attempting login with:', emailInput);
         try {
-            // Use the actual API call
+            // loginUser calls the API, backend response should set the cookie
             const response = await loginUser({ email: emailInput, password: passwordInput }); 
-
-            // Dispatch event on successful login (token is handled by loginUser/apiClient)
-            dispatch('loginsuccess', {
-                // We don't get username back from login, parent component will fetch user data
-                // username: emailInput // Pass email as identifier for now if needed
-            });
+            console.log('Login API call successful, response:', response);
+            
+            // Dispatch event only after login succeeds
+            dispatch('loginsuccess', {});
 
         } catch (error) {
             console.error('Login failed:', error);

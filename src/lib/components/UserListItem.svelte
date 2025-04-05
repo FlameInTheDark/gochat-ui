@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Member } from '$lib/api/members';
+    import * as m from '$lib/paraglide/messages.js'; // Import messages
 
     export let member: Member;
 
@@ -35,7 +36,10 @@
     </div>
 
     <!-- Name -->
-    <span class="truncate text-sm font-medium {member.status === 'offline' ? 'text-gray-400' : 'text-gray-200'} group-hover:text-gray-100 transition-colors duration-100 ease-in-out">
+    <span 
+        class="truncate text-sm font-medium {member.status === 'offline' ? 'text-gray-400' : 'text-gray-200'} group-hover:text-gray-100 transition-colors duration-100 ease-in-out"
+        title={member.status === 'offline' ? m.offline_status() : m.online_status()}
+    >
         {member.name}
     </span>
 

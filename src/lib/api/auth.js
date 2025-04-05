@@ -1,4 +1,5 @@
-import { apiClient, setAuthToken, ApiError } from './client';
+import { apiClient, ApiError } from './client';
+import { setAuthCookie } from './client';
 
 // --- JSDoc Types --- (Add more from spec as needed)
 
@@ -34,18 +35,16 @@ import { apiClient, setAuthToken, ApiError } from './client';
  */
 export async function registerUser(registrationData) {
     try {
-        // The spec indicates 201 returns a string message
-        const responseMessage = await apiClient('/auth/registration', 'POST', registrationData);
-        return responseMessage; // May be undefined if API returns no body on success
+        return await apiClient('/auth/registration', 'POST', registrationData);
     } catch (error) {
         console.error('Registration failed:', error);
-        // Re-throw the error to be handled by the UI
         throw error; 
     }
 }
 
 /**
  * Sends a login request to the API.
+ * Returns the response which includes the token (but doesn't store it here).
  * @param {LoginRequest} loginData
  * @returns {Promise<LoginResponse>} - The login response containing the token.
  * @throws {ApiError} - Throws an ApiError on failure.
@@ -54,25 +53,27 @@ export async function loginUser(loginData) {
     try {
         const response = await apiClient('/auth/login', 'POST', loginData);
         if (response?.token) {
-            setAuthToken(response.token); // Store the token
+            setAuthCookie(response.token);
         } else {
-            // Handle case where token is missing in response
-            throw new ApiError('Login successful, but no token received.', 200, response);
+            throw new ApiError('Login successful, but no token in response body.', 200, response);
         }
         return response;
     } catch (error) {
         console.error('Login failed:', error);
-        setAuthToken(null); // Clear token on login failure
+        setAuthCookie(null);
         throw error;
     }
 }
 
 /**
- * Logs the user out by clearing the stored token.
+ * Clears the auth cookie.
  */
 export function logoutUser() {
-    setAuthToken(null);
-    // Optionally: Add API call to invalidate token on the server if needed
+    // Client-side only: Clear the cookie
+    if (browser) {
+        setAuthCookie(null); 
+    }
+    // TODO: Add API call to invalidate token/session on backend if necessary
 }
 
 /**
@@ -83,12 +84,9 @@ export function logoutUser() {
  */
 export async function confirmRegistration(confirmationData) {
     try {
-        // Spec: 201 returns a string message
-        const responseMessage = await apiClient('/auth/confirmation', 'POST', confirmationData);
-        console.log("Confirmation successful:", responseMessage);
-        return responseMessage; // Or a standard success indicator
+        return await apiClient('/auth/confirmation', 'POST', confirmationData);
     } catch (error) {
         console.error('Confirmation failed:', error);
-        throw error; // Re-throw for the UI
+        throw error;
     }
 } 

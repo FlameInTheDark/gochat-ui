@@ -1,43 +1,40 @@
 <script lang="ts">
 	import '../app.css';
-	import ContextMenuOverlay from '$lib/components/ContextMenuOverlay.svelte';
-	import { contextMenuStore } from '$lib/stores/contextMenuStore';
-	import { onDestroy, onMount } from 'svelte';
+	// import AppOverlays from '$lib/components/AppOverlays.svelte';
+	// import ContextMenuOverlay from '$lib/components/ContextMenuOverlay.svelte';
+	// import { contextMenuStore } from '$lib/stores/contextMenuStore';
+	// import { onDestroy, onMount } from 'svelte';
 
 	let { children } = $props();
 
-	let contextMenuOverlayElement = $state<HTMLElement | undefined>(undefined);
-	let isContextMenuOpen = $state(false);
+	// let contextMenuOverlayElement = $state<HTMLElement | undefined>(undefined);
+	// let isContextMenuOpen = $state(false);
+	// const unsubscribe = contextMenuStore.subscribe(state => {
+	// 	isContextMenuOpen = state.isOpen;
+	// });
+	// function registerOverlayElement(element: HTMLElement | undefined) {
+	// 	contextMenuOverlayElement = element;
+	// }
 
-	const unsubscribe = contextMenuStore.subscribe(state => {
-		isContextMenuOpen = state.isOpen;
-	});
+	// onMount(() => {
+	// 	// Add listeners to document body instead of the div
+	// 	// document.body.addEventListener('click', handleGlobalClick);
+	// 	// document.body.addEventListener('keydown', handleGlobalKeydown);
 
-	function registerOverlayElement(element: HTMLElement | undefined) {
-		contextMenuOverlayElement = element;
-	}
+	// 	// Cleanup function
+	// 	return () => {
+	// 		// document.body.removeEventListener('click', handleGlobalClick);
+	// 		// document.body.removeEventListener('keydown', handleGlobalKeydown);
+	// 	};
+	// });
 
-	onMount(() => {
-		// Add listeners to document body instead of the div
-		// document.body.addEventListener('click', handleGlobalClick);
-		// document.body.addEventListener('keydown', handleGlobalKeydown);
-
-		// Cleanup function
-		return () => {
-			// document.body.removeEventListener('click', handleGlobalClick);
-			// document.body.removeEventListener('keydown', handleGlobalKeydown);
-		};
-	});
-
-	onDestroy(unsubscribe);
+	// onDestroy(unsubscribe);
 </script>
 
 <div
 	class="app-container w-full h-full"
 >
 	{@render children()}
-
-	<ContextMenuOverlay registerElement={registerOverlayElement} />
 
 </div>
 

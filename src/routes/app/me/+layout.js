@@ -1,9 +1,8 @@
-import { getDirectMessages } from '$lib/api/dms.js';
+import { getDirectMessages } from '$lib/api/dms';
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').LayoutLoad} */
 export async function load() {
-    console.log("Loading data for /app/me layout");
     try {
         const dms = await getDirectMessages();
         return {

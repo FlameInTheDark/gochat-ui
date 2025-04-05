@@ -10,12 +10,11 @@
     // Extract data passed from load function
     $: ({ dmDetails, messages, userId } = data);
 
+    // Remove scroll logic for simplicity
+
+    // Placeholder for sending message logic
     function handleSendMessage(event: CustomEvent<{ content: string }>) {
-        console.log(`DM Page received message to send to ${userId}:`, event.detail.content);
-        // TODO: Implement actual message sending logic here
-        // This would likely involve calling an API function like:
-        // await sendMessageToDm(userId, event.detail.content);
-        // And potentially updating the local messages state optimistically.
+        // TODO: Implement actual message sending API call
     }
 
 </script>
@@ -39,10 +38,15 @@
     </header>
 
     <!-- Message List START -->
-    <MessageList 
-        messages={messages} 
-        welcomeMessage={`This is the beginning of your direct message history with ${dmDetails?.name || 'this user'}.`}
-    />
+    <div 
+        class="flex-grow flex flex-col min-h-0"
+        data-channel-id={dmDetails?.channelId}
+    >
+        <MessageList 
+            messages={messages} 
+            welcomeMessage={`This is the beginning of your direct message history with ${dmDetails?.name || 'this user'}.`}
+        />
+    </div>
     <!-- Message List END -->
 
     <!-- Message Input Area -->

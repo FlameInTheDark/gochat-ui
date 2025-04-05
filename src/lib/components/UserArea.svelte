@@ -3,14 +3,13 @@
     // Import User type for JSDoc
     import type { User } from '$lib/api/client.js';
 
-    /** 
-     * The current user data, passed from a parent layout.
-     * @type {User | null}
-     */
-    export let user = null;
+    // Use $props() for runes mode
+    const { user = null } = $props<{ 
+        user: User | null 
+    }>();
 
     // TODO: Add actual avatar logic later using user.avatar (might need base URL or lookup)
-    const getAvatarUrl = (avatarId) => {
+    const getAvatarUrl = (avatarId: bigint | null | undefined): string | null => {
         // Placeholder - replace with actual logic 
         // return avatarId ? `/api/v1/avatar/${avatarId}.png` : null;
         return null; 

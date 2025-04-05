@@ -1,3 +1,5 @@
+import { apiClient, ApiError } from './client';
+
 /** @typedef {{id: string, name: string, type: 'text' | 'voice', topic?: string, unread?: boolean}} Channel */
 /** @typedef {Record<string, Channel[]>} MockChannelData */
 
@@ -26,21 +28,92 @@ const mockChannelsByServer = {
 };
 
 /**
- * Fetches the list of channels for a given server.
- * @param {string} serverId The ID of the server.
- * @returns {Promise<Array<{id: string, name: string, type: 'text' | 'voice', topic?: string, unread?: boolean}>>}
+ * @param {bigint} guildId
  */
-export async function getChannels(serverId) {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // In a real app, fetch from `/api/servers/${serverId}/channels`
-    console.log(`Returning mock channels for server ${serverId}`);
-    return Promise.resolve(mockChannelsByServer[serverId] || []);
+export async function getGuildChannels(guildId) {
+    try {
+        const channels = await apiClient(`/guild/${guildId}/channel`, 'GET');
+        return channels || [];
+    } catch (error) {
+        console.error(`Error fetching channels for guild ${guildId}:`, error);
+        return []; // Return empty array on error
+    }
 }
 
 /**
- * Fetches details for a specific channel across all servers.
+ * @param {bigint} guildId
+ * @param {{name: string, private: boolean, parent_id?: number, type?: number}} channelData
+ */
+export async function createChannel(guildId, channelData) {
+    try {
+        const response = await apiClient(`/guild/${guildId}/channel`, 'POST', channelData);
+        return response; // Assuming API returns the created channel
+    } catch (error) {
+        console.error(`Failed to create channel in guild ${guildId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * @param {bigint} guildId
+ * @param {bigint} channelId
+ */
+export async function deleteChannel(guildId, channelId) {
+    try {
+        const response = await apiClient(`/guild/${guildId}/channel/${channelId}`, 'DELETE');
+        return response; // Likely empty or simple success message
+    } catch (error) {
+        console.error(`Failed to delete channel ${channelId} from guild ${guildId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * @param {bigint} guildId
+ * @param {{name: string, private: boolean}} categoryData
+ */
+export async function createCategory(guildId, categoryData) {
+    try {
+        const response = await apiClient(`/guild/${guildId}/category`, 'POST', categoryData);
+        return response; 
+    } catch (error) {
+        console.error(`Failed to create category in guild ${guildId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * @param {bigint} guildId
+ * @param {bigint} categoryId
+ */
+export async function deleteCategory(guildId, categoryId) {
+    try {
+        const response = await apiClient(`/guild/${guildId}/category/${categoryId}`, 'DELETE');
+        return response;
+    } catch (error) {
+        console.error(`Failed to delete category ${categoryId} from guild ${guildId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * @param {bigint} channelId
+ */
+export async function getChannel(channelId) {
+    try {
+        const channel = await apiClient(`/channel/${channelId}`, 'GET');
+        return channel;
+    } catch (error) {
+        console.error(`Error fetching channel ${channelId}:`, error);
+        if (error instanceof ApiError && error.status === 404) {
+            return null;
+        }
+        throw error;
+    }
+}
+
+/**
+ * [MOCK] Fetches details for a specific channel across all servers.
  * Note: This is inefficient for mock data but simulates finding a channel by its unique ID.
  * @param {string} channelId The ID of the channel.
  * @returns {Promise<Channel | null>} The channel details or null if not found.
@@ -52,12 +125,10 @@ export async function getChannelDetails(channelId) {
     for (const serverId in mockChannelsByServer) {
         const channel = mockChannelsByServer[serverId].find(c => c.id === channelId);
         if (channel) {
-            console.log(`Returning mock details for channel ${channelId}: Found in server ${serverId}`);
             return Promise.resolve(channel);
         }
     }
 
-    console.log(`Returning mock details for channel ${channelId}: Not Found`);
     return Promise.resolve(null); // Channel not found in any server
 }
 

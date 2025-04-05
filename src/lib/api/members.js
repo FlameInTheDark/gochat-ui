@@ -1,3 +1,5 @@
+import { apiClient } from './client';
+
 /** @typedef {{id: string, name: string, avatarUrl: string | null, status: 'online' | 'idle' | 'dnd' | 'offline', channels?: string[]}} Member */
 /** @typedef {Record<string, Member[]>} MockMemberData */
 
@@ -25,18 +27,31 @@ const mockMembersByServer = {
 };
 
 /**
- * Fetches the list of members for a given server.
- * @param {string} serverId The ID of the server.
- * @returns {Promise<Member[]>}
+ * @param {string} serverId
  */
 export async function getMembers(serverId) {
-    // Simulate network delay
+    // Mock implementation doesn't use fetchFn, but added for consistency
+    console.warn(`API for fetching all members for server ${serverId} not implemented yet. Using mock data.`);
     await new Promise(resolve => setTimeout(resolve, 120));
-
-    // In a real app, fetch from `/api/servers/${serverId}/members`
-    // Filtering by channel might happen server-side or client-side depending on API design.
-    console.log(`Returning mock members for server ${serverId}`);
+    // @ts-ignore
     return Promise.resolve(mockMembersByServer[serverId] || []);
 }
+
+/**
+ * @param {bigint} guildId
+ */
+export async function getCurrentUserGuildMember(guildId) {
+    try {
+        const member = await apiClient(`/user/me/guilds/${guildId}/member`, 'GET');
+        return member;
+    } catch (error) {
+        console.error(`Failed to fetch current user member for guild ${guildId}:`, error);
+        // Optionally handle 404 specifically if needed
+        // if (error instanceof ApiError && error.status === 404) return null;
+        throw error; // Re-throw for now
+    }
+}
+
+// Add getMemberProfile later if needed (e.g., GET /guild/{guildId}/members/{userId})
 
 // Add more member functions later (e.g., getMemberProfile) 

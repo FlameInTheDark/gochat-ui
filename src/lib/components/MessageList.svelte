@@ -1,7 +1,7 @@
 <!-- src/lib/components/MessageList.svelte -->
 <script lang="ts">
     import MessageItem from '$lib/components/MessageItem.svelte';
-    import type { Message } from '$lib/api/messages.js';
+    import type { Message } from '$lib/types';
     import { onMount, afterUpdate } from 'svelte';
 
     export let messages: Message[] | undefined = undefined; // Array of messages

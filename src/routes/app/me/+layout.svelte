@@ -8,6 +8,7 @@
     import type { Member } from '$lib/api/members';
     import type { DirectMessageConversation } from '$lib/api/dms.js';
     import type { User } from '$lib/api/client.js';
+    import * as m from '$lib/paraglide/messages.js'; // Import messages
 
     /** @type {import('./$types').LayoutData} */
     export let data: LayoutData;
@@ -44,7 +45,7 @@
     <nav class="channels-sidebar flex flex-col bg-gray-750 w-60 flex-shrink-0">
         <!-- Header/Search (Placeholder) -->
         <div class="p-3 h-12 flex items-center shadow-md flex-shrink-0">
-            <input type="search" placeholder="Find or start a conversation" class="w-full bg-gray-900 px-2 py-1 rounded text-sm placeholder-gray-400 text-gray-200 focus:outline-none" />
+            <input type="search" placeholder={m.dm_search_placeholder()} class="w-full bg-gray-900 px-2 py-1 rounded text-sm placeholder-gray-400 text-gray-200 focus:outline-none" />
         </div>
 
         <!-- DM List Area -->
@@ -52,9 +53,9 @@
             <!-- Friends Link -->
             <a href="/app/me" class="flex items-center p-2 mx-2 my-0.5 rounded-md cursor-pointer group transition-colors duration-100 ease-in-out hover:bg-gray-700/50 {activeDmId === undefined ? 'bg-gray-650' : ''}">
                 <svg class="w-6 h-6 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
-                <span class="text-sm font-medium text-gray-200 group-hover:text-gray-100">Friends</span>
+                <span class="text-sm font-medium text-gray-200 group-hover:text-gray-100">{m.friends_link()}</span>
             </a>
-             <h3 class="px-4 pt-4 pb-1 text-xs font-semibold uppercase text-gray-400">Direct Messages</h3>
+             <h3 class="px-4 pt-4 pb-1 text-xs font-semibold uppercase text-gray-400">{m.dm_header()}</h3>
             {#if validDms.length > 0}
                 {#each validDms as dm (dm.id)}
                     {@const isActive = activeDmId === dm.id}
@@ -63,7 +64,7 @@
             {:else if 'error' in data && data.error}
                 <p class="text-center text-red-400 p-4">Error loading DMs: {typeof data.error === 'object' && 'message' in data.error ? data.error.message : 'Unknown error'}</p>
             {:else}
-                <p class="px-4 text-sm text-gray-500">No direct messages yet.</p>
+                <p class="px-4 text-sm text-gray-500">{m.no_dms()}</p>
             {/if}
         </div>
 
@@ -82,14 +83,14 @@
             <!-- Header - e.g., "Members" or DM Partner Name -->
              <div class="p-3 h-12 flex items-center shadow-md flex-shrink-0 border-l border-gray-800">
                 <h3 class="font-semibold text-white truncate">
-                    {currentDmDetails.type === 'GROUP' ? 'Members' : currentDmDetails.name}
+                    {currentDmDetails.type === 'GROUP' ? m.server_members_header() : currentDmDetails.name}
                 </h3>
             </div>
 
             <!-- User List Area -->
             <div class="flex-grow overflow-y-auto p-1 space-y-1 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent border-l border-gray-800">
                 {#if currentDmDetails.type === 'GROUP' && currentDmDetails.members}
-                    <h3 class="px-1.5 pt-4 pb-1 text-xs font-semibold uppercase text-gray-400">Online — {currentDmDetails.members.length}</h3>
+                    <h3 class="px-1.5 pt-4 pb-1 text-xs font-semibold uppercase text-gray-400">{m.online_status()} — {currentDmDetails.members.length}</h3>
                     {#each currentDmDetails.members as member (member.id)}
                         {@const memberData: Member = { id: member.id, name: member.name, avatarUrl: null, status: 'online'} }
                         <UserListItem member={memberData} />
@@ -98,7 +99,7 @@
                 {:else if currentDmDetails?.type === 'DM'}
                      {@const partnerMember = currentDmDetails ? createDmPartnerMember(currentDmDetails as DirectMessageConversation) : null}
                      {#if partnerMember}
-                         <h3 class="px-1.5 pt-4 pb-1 text-xs font-semibold uppercase text-gray-400">Online — 1</h3>
+                         <h3 class="px-1.5 pt-4 pb-1 text-xs font-semibold uppercase text-gray-400">{m.online_status()} — 1</h3>
                          <UserListItem member={partnerMember} />
                      {/if}
                 {:else}

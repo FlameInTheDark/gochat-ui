@@ -1,56 +1,33 @@
 import { browser } from '$app/environment';
-import { goto } from '$app/navigation';
+import { redirect } from '@sveltejs/kit';
 import { getUserMe } from '$lib/api/user.js';
-import { setAuthToken, ApiError } from '$lib/api/client.js';
+import { getAuthToken } from '$lib/api/client.js';
+import { ApiError } from '$lib/api/client'; // Import ApiError
+// Import the User type if needed for return type annotation
+// import type { User } from '$lib/api/client'; 
 
 /** @type {import('./$types').LayoutLoad} */
-export async function load({ fetch }) { // Use SvelteKit's fetch
-    let currentUser = null;
-    let loadError = null;
-    let needsRedirect = false;
-
-    // Check for token only in browser initially, or rely on fetch context (cookies) server-side
-    const initialToken = browser ? localStorage.getItem('authToken') : null; // Might be null server-side
-
-    console.log("Running /app layout load function...");
-
-    // Attempt to fetch user data IF we think we might be logged in (token exists client-side)
-    // Server-side fetch will rely on cookies handled by apiClient/axios
-    if (browser && !initialToken) {
-        console.log("/app layout: No token found client-side, redirecting to login.");
-        needsRedirect = true; // No token, definitely needs login
-    } else {
-        try {
-            // Pass SvelteKit's fetch to getUserMe -> apiClient -> axios
-            // This ensures cookies are handled correctly during SSR if needed
-            currentUser = await getUserMe(fetch);
-            console.log("/app layout: Fetched currentUser:", currentUser);
-        } catch (error) {
-            console.error("/app layout: Error fetching user:", error);
-            loadError = error instanceof Error ? error.message : 'Unknown error';
-            if (error instanceof ApiError && error.status === 401) {
-                // Unauthorized - token is invalid or expired
-                if (browser) {
-                    setAuthToken(null); // Clear bad token
-                }
-                needsRedirect = true; // Force login
-                loadError = 'Session expired. Please log in.';
-            } else {
-                 // Keep loadError for display, but don't necessarily redirect for other errors
-                 loadError = error?.body || error?.message || 'Failed to load user data.';
-            }
-            currentUser = null; // Ensure user is null on error
+export async function load({ url }) {
+    if (browser) {
+        // Client-side: Check for token, fetch user, redirect if needed
+        const token = getAuthToken();
+        if (!token) {
+            // Redirect to login if no token, preserving attempted path
+            throw redirect(302, `/?redirectTo=${encodeURIComponent(url.pathname + url.search)}`);
         }
+        try {
+            const user = await getUserMe();
+            return { currentUser: user };
+        } catch (error) {
+            // Handle errors, e.g., invalid token
+            console.error('[app/+layout.js load] Error fetching user on client:', error);
+            // Clear potentially invalid cookie/token here if applicable
+            // Example: clearAuthToken(); 
+            // Redirect to login
+            throw redirect(302, `/?redirectTo=${encodeURIComponent(url.pathname + url.search)}`);
+        }
+    } else {
+        // Server-side: Assume auth handled by page/endpoint guards, just return null initially
+        return { currentUser: null }; 
     }
-
-    // Perform redirect in the browser *after* load function completes
-    if (needsRedirect && browser) {
-        console.log("/app layout: Triggering goto('/')");
-        await goto('/'); // Redirect to home/login page
-    }
-
-    return {
-        currentUser, // Can be null if not logged in or fetch failed
-        loadError    // Pass error information if needed
-    };
 } 

@@ -24,3 +24,5 @@ vite.config.ts.timestamp-*
 
 # Paraglide
 src/lib/paraglide
+
+AI_GENERATION_RULES.md

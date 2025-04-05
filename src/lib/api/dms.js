@@ -1,3 +1,5 @@
+import { apiClient } from "./client";
+
 /** 
  * @typedef {object} DirectMessageConversation
  * @property {string} id - Unique ID (user ID for DMs, group ID for group DMs)
@@ -40,17 +42,62 @@ const mockDirectMessages = [
 
 // Fetches the list of Direct Message conversations
 export async function getDirectMessages() {
-    await new Promise(resolve => setTimeout(resolve, 80));
-    console.log("Returning mock Direct Messages (Array)");
-    // Sort the array directly
-    const sortedMessages = [...mockDirectMessages]; // Create a copy before sorting
-    sortedMessages.sort((a, b) => {
-        if (!a.lastMessage) return 1;
-        if (!b.lastMessage) return -1;
-        // @ts-ignore 
-        return new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime();
-    });
-    return Promise.resolve(sortedMessages);
+    // TODO: Fetch actual DMs from API endpoint (e.g., /user/me/channels?type=DM)
+    // REMOVED: console.log(...)
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+    return Promise.resolve(mockDirectMessages);
+}
+
+/**
+ * Create a DM channel with a specific user.
+ * @param {bigint} recipientId 
+ * @returns {Promise<import("$lib/types").Channel>} // Use JSDoc import type
+ */
+export async function createDM(recipientId) {
+    try {
+        const response = await apiClient('/user/me/channels', 'POST', { recipient_id: recipientId });
+        // REMOVED: console.log(...)
+        // API might return the channel object or just success
+        // Assuming it returns the channel for now
+        return response;
+    } catch (error) {
+        console.error(`Failed to create DM with user ${recipientId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Create a group DM channel.
+ * @param {{ recipients_id: bigint[] }} payload 
+ * @returns {Promise<import("$lib/types").Channel>} // Use JSDoc import type
+ */
+export async function createGroupDM(payload) {
+    try {
+        const response = await apiClient('/user/me/channels/group', 'POST', payload);
+        // REMOVED: console.log(...)
+        return response;
+    } catch (error) {
+        console.error('Failed to create group DM:', error);
+        throw error;
+    }
+}
+
+/**
+ * Creates a new DM channel with a recipient.
+ * @param {bigint} recipientId The ID of the user to create a DM with.
+ * @returns {Promise<import("$lib/types").Channel>} // Use JSDoc import type
+ */
+export async function createDMChannel(recipientId) {
+    const payload = { recipient_id: recipientId };
+    try {
+        // Assuming the API returns the created Channel object on success
+        const newChannel = await apiClient('/user/me/channels', 'POST', payload);
+        // TODO: Adapt if API only returns "ok" or an ID
+        return newChannel; 
+    } catch (error) {
+        console.error(`Failed to create DM channel with user ${recipientId}:`, error);
+        throw error;
+    }
 }
 
 // Add getFriends, etc. later 

@@ -1,11 +1,11 @@
 import { error } from '@sveltejs/kit';
 import { getDirectMessages } from '$lib/api/dms.js';
 // We'll need to add this function and mock data later
-import { getMessagesForDm } from '$lib/api/messages.js'; 
+import { getMessagesForDm } from '$lib/api/messages.js';
+import { getDmUserDetails } from "$lib/api/dms.js";
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params }) {
-    console.log(`Loading data for /app/me/${params.user_id}`);
     const userId = params.user_id;
 
     try {

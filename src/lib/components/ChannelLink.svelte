@@ -4,83 +4,156 @@
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     // import { getChannelIcon } from '$lib/utils';
+    import * as m from '$lib/paraglide/messages.js';
+    import type { Channel } from '$lib/types.d.ts'; // <-- Add extension
+    import { ChannelType } from '$lib/enums'; // <-- Import from enums.ts (no extension needed)
+    import JSONBig from 'json-bigint'; // <-- Import JSONBig
+    import { overlayManagerStore } from '$lib/stores/overlayManagerStore'; // Import store
+    import type { MenuItem } from '$lib/stores/contextMenuStore'; // Import type
+    import { deleteChannel } from '$lib/api/channels.js'; // Import API
 
-    // Give channel a default value
-    /** @type {{id: string, name: string, type: 'text' | 'voice', unread?: boolean} | null} Channel data */
-    export let channel: {id: string, name: string, type: 'text' | 'voice', unread?: boolean} | null = null;
-    /** @type {string} The server ID (used for constructing the link) */
-    export let serverId: string;
+    // Use $props for runes mode
+    const { 
+        channel, 
+        serverId, 
+        active = false,
+        onDeleteSuccess // Add callback prop
+    } = $props<{ 
+        channel: Channel; // <-- Use the imported Channel type
+        serverId: string | null; // Allow null from ChannelList
+        active?: boolean; 
+        onDeleteSuccess: () => void; // Define prop type
+    }>();
 
-    function navigate() {
-        // Ensure serverId and channel.id are valid before navigating
-        if(serverId && channel?.id) {
-            goto(`/app/${serverId}/${channel.id}`);
-        } else {
-            console.error('Missing serverId or channel.id for navigation', { serverId, channelId: channel?.id });
+    // Derive directly from props
+    const serverIdBigInt = $derived(serverId ? BigInt(serverId) : null);
+    const channelIdString = $derived(channel.id.toString());
+    const href = $derived(serverId ? `/app/${serverId}/${channelIdString}` : '#');
+
+    function handleClick(event: MouseEvent) {
+        if (active || !serverId) { // Don't navigate if active or serverId is null
+            event.preventDefault();
+            return;
         }
+        goto(href);
     }
 
-    // Define reactive variables, but calculate inside the #if block or guard access
-    let isActive: boolean = false;
-    let fontWeightClass: string = 'text-gray-400';
-    let hoverBgClass: string = 'hover:bg-gray-700';
-    let activeBgClass: string = 'hover:text-gray-200';
+    // Use $derived with an IIFE to immediately calculate the value
+    const iconContent = $derived(
+        (() => {
+            switch (Number(channel.type)) {
+                case ChannelType.GUILD_TEXT:
+                case ChannelType.GUILD_ANNOUNCEMENT:
+                    return '#';
+                case ChannelType.GUILD_VOICE:
+                    return '🔊'; 
+                default:
+                    return '?';
+            }
+        })() // Immediately invoke the function
+    );
 
-    $: {
-        if (channel) {
-            isActive = $page.params.channelId === channel.id;
-            fontWeightClass = channel.unread && !isActive ? 'font-semibold text-white' : 'text-gray-400';
-            hoverBgClass = isActive ? '' : 'hover:bg-gray-700';
-            activeBgClass = isActive ? 'bg-gray-650 text-white' : 'hover:text-gray-200';
-        } else {
-            // Reset to defaults if channel becomes undefined
-            isActive = false;
-            fontWeightClass = 'text-gray-400';
-            hoverBgClass = 'hover:bg-gray-700';
-            activeBgClass = 'hover:text-gray-200';
-        }
+    function handleContextMenu(event: MouseEvent) {
+        event.preventDefault();
+        event.stopPropagation(); // Prevent list context menu
+
+        if (!serverIdBigInt) return;
+
+        const channelIdForAction = channel.id;
+
+        const items: MenuItem[] = [
+            {
+                label: 'Edit Channel',
+                action: () => console.log('Edit channel:', channelIdForAction)
+            },
+            {
+                label: 'Delete Channel',
+                danger: true,
+                action: () => { // Make it synchronous now
+                    // Define the actual delete logic separately
+                    const performDelete = async () => {
+                        try {
+                            await deleteChannel(serverIdBigInt, channelIdForAction);
+                            console.log(`Channel ${channelIdForAction} deleted`);
+                            const isActive = $page.params.channel_id === channelIdString;
+                            onDeleteSuccess(); // Refresh list
+                            if (isActive && serverId) {
+                                console.log("[ChannelLink] Active channel deleted. Navigating...");
+                                goto(`/app/${serverId}`);
+                            }
+                        } catch (err) {
+                            console.error(`Failed to delete channel ${channelIdForAction}:`, err);
+                            alert(`Error deleting channel: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                        }
+                    };
+
+                    // Show the confirmation modal
+                    console.log("[ChannelLink] Attempting to show ConfirmDeleteChannelModal");
+                    overlayManagerStore.showConfirmDeleteChannelModal({
+                        channelName: channel.name,
+                        onConfirm: performDelete // Pass the delete logic as the callback
+                    });
+                }
+            }
+        ];
+
+        overlayManagerStore.showContextMenu({
+            position: { x: event.clientX, y: event.clientY },
+            items,
+            // Pass context if needed by actions later
+            // contextData: { channelId, serverId: serverIdBigInt }
+        });
     }
-
-    // Restore simple icon logic
-    // $: iconComponent = getChannelIcon(channel.type);
 
 </script>
 
 {#if channel}
 <!-- Use a button for better semantics and accessibility if it triggers navigation -->
-<button 
-    type="button"
-    data-channel-id={channel.id} 
-    data-channel-type="server"
-    class="channel-link w-full flex items-center px-2 py-1 rounded cursor-pointer text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-100 {
-        isActive ? 'bg-gray-600 text-white' : ''
-    }"
-    on:click={navigate}
-    aria-current={isActive ? 'page' : undefined}
+<a 
+    {href} 
+    onclick={handleClick}
+    oncontextmenu={handleContextMenu}
+    class="channel-link group flex items-center px-2 py-1.5 text-sm font-medium rounded-md transition-colors duration-100 ease-in-out"
+    class:active="{active}" 
+    aria-current={active ? 'page' : undefined}
     title={channel.name}
+    data-channel-id={channelIdString}
 >
     <!-- Restore original icon logic -->
-    <span class="mr-1.5 flex-shrink-0 {
-        isActive ? 'text-gray-300' : 'text-gray-500'
-    } group-hover:text-gray-400">
-        {#if channel.type === 'text'}
-            #
-        {:else if channel.type === 'voice'}
-            🔊 <!-- Or use an SVG icon -->
-        {/if}
+    <span 
+        class="channel-icon mr-1.5 flex-shrink-0 w-5 text-center {active ? 'text-gray-100' : 'text-gray-400 group-hover:text-gray-300'}"
+    >
+        {iconContent}
     </span>
-    <span class="truncate text-sm font-medium flex-grow text-left {fontWeightClass}">
+    <span 
+        class="flex-1 truncate {active ? 'text-white' : 'text-gray-300 group-hover:text-white'}"
+    >
         {channel.name}
     </span>
      <!-- TODO: Add indicators for unread messages or mentions -->
-</button>
+</a>
 {/if}
 
 <style>
     /* Add any specific styles for the link if needed */
+    .channel-link {
+        color: #8e9297; /* Default text color */
+    }
+    .channel-link:hover,
+    .channel-link:focus {
+        background-color: #3a3c43;
+        color: #dcddde;
+    }
+    .channel-link.active {
+        background-color: #3c3f45; 
+        color: #ffffff;
+    }
+    .channel-link.active .channel-icon {
+        color: #ffffff; /* Make icon white when active */
+    }
     .channel-link:focus-visible {
-        outline: 2px solid blue;
-        outline-offset: 1px;
+        outline: 2px solid rgb(96 165 250); /* Tailwind blue-400 */
+        outline-offset: -1px;
     }
     .channel-link {
          /* Ensure text doesn't wrap weirdly */
