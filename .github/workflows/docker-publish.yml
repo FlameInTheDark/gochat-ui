@@ -1,10 +1,14 @@
 name: Docker Build and Push to GHCR
 
-# Run this workflow when a new Release is published
+# Run this workflow:
+# 1. When a new Release is published
+# 2. When code is pushed to the 'dev' branch
 on:
   release:
     types: [ published ] # Triggered after semantic-release creates the GitHub release
-  workflow_dispatch: # Allow manual triggering
+  push:
+    branches: [ dev ]   # Triggered on push to dev branch
+  workflow_dispatch:      # Allow manual triggering
 
 # Environment variables available to all jobs and steps
 env:
@@ -26,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        # Checks out the code associated with the release tag
+        # Checks out the code associated with the release tag OR the dev branch commit
         uses: actions/checkout@v4
 
       - name: Log in to the Container registry
@@ -42,10 +46,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Use the Git tag from the release event (e.g., v1.0.0)
+            # For release events: Use the Git tag from the release event (e.g., v1.0.0)
             type=ref,event=tag
-            # Also tag as 'latest' if this is the latest release (optional but common)
-            type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
+            # For release events: Also tag as 'latest' if this is the latest non-prerelease
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}
+            # For push events to dev branch: Tag with 'dev'
+            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
