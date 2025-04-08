@@ -1,0 +1,42 @@
+name: Semantic Release
+
+on:
+  push:
+    branches:
+      - main # Or your release branch
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write # to be able to publish a GitHub release
+  issues: write # to be able to comment on released issues
+  pull-requests: write # to be able to comment on released pull requests
+  id-token: write # to enable use of OIDC for npm provenance (if publishing to npm)
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history so semantic-release can analyze commits
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*' # Use the latest LTS version of Node
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run semantic-release
+        env:
+          # Provide the token for GitHub authentication
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: Provide NPM_TOKEN if publishing to npm
+          # NPM_TOKEN: ${{ secrets.NPM_TOKEN }} 
+        run: npx semantic-release 

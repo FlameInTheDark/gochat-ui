@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
-// Use static public env var (Ensure PUBLIC_API_BASE_URL is in .env)
-import { PUBLIC_API_BASE_URL } from '$env/static/public'; 
+// Use dynamic public env var (must be prefixed with PUBLIC_ in .env or set at runtime)
+import { env } from '$env/dynamic/public'; 
 import axios from 'axios'; // Restore Axios import
 import JSONBig from 'json-bigint'; // Keep json-bigint
 
@@ -71,7 +71,7 @@ export function setAuthCookie(token) {
 
 // Create an axios instance with default configuration
 const axiosInstance = axios.create({
-    baseURL: PUBLIC_API_BASE_URL,
+    baseURL: env.PUBLIC_API_BASE_URL,
     timeout: 10000, 
     headers: {
         'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ axiosInstance.interceptors.response.use(
  * @throws {ApiError} Throws an ApiError for non-2xx responses.
  */
 export async function apiClient(endpoint, method = 'GET', body = null) {
-    const baseUrl = PUBLIC_API_BASE_URL;
+    const baseUrl = env.PUBLIC_API_BASE_URL;
     const url = `${baseUrl}${endpoint}`;
 
     // Create headers object
@@ -160,12 +160,13 @@ export async function apiClient(endpoint, method = 'GET', body = null) {
         headers.append('Authorization', `Bearer ${token}`);
     }
 
+    /** @type {RequestInit} */
     const options = {
         method,
         headers,
         mode: 'cors', 
         cache: 'no-cache',
-        body: undefined // Initialize body
+        body: undefined // Initialize body (RequestInit allows string | ReadableStream | Blob | etc. or undefined/null)
     };
 
     if (body && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {

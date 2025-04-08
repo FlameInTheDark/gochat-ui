@@ -5,14 +5,14 @@ import { getAuthToken } from '$lib/api/client';
 // Import from servers.js now
 import { getCurrentUserGuilds } from '$lib/api/servers.js'; // <-- Import guild fetch function
 import type { Guild } from '$lib/api/client'; // <-- Import Guild type if needed
-import { PUBLIC_WEBSOCKET_URL } from '$env/static/public'; // <-- Import env var
+import { env } from '$env/dynamic/public'; // <-- Use correct dynamic import
 import JSONBig from 'json-bigint'; // <-- Import json-bigint
 import { addMessageToStore, removeMessageFromStore } from '$lib/stores/messageStore'; // <-- Import store functions
 import type { Message, Channel, Attachment } from '$lib/types.d.ts'; // <-- Add Attachment
 
 // --- Constants --- 
 // TODO: Move to environment variables if they differ between environments
-const WEBSOCKET_URL = PUBLIC_WEBSOCKET_URL; 
+const WEBSOCKET_URL = env.PUBLIC_WEBSOCKET_URL; // <-- Access via env object
 
 // --- State --- 
 let socket: WebSocket | null = null;
