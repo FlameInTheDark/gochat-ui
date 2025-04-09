@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import { apiClient, ApiError } from './client';
 import { setAuthCookie } from './client';
 
@@ -18,7 +19,7 @@ import { setAuthCookie } from './client';
 
 /**
  * @typedef {object} ConfirmationRequest
- * @property {number} id - User ID from confirmation link.
+ * @property {bigint} id - User ID from confirmation link.
  * @property {string} token - Confirmation token from link.
  * @property {string} name - Desired display name.
  * @property {string} password - Chosen password.
