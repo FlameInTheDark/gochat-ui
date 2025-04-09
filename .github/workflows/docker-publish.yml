@@ -50,8 +50,8 @@ jobs:
             type=ref,event=tag
             # For release events: Also tag as 'latest' if this is the latest non-prerelease
             type=raw,value=latest,enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}
-            # For push events to dev branch: Tag with 'dev'
-            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+            # For push events to a branch: Use the branch name as the tag (e.g., 'dev')
+            type=ref,event=branch
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
