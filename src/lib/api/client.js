@@ -80,7 +80,7 @@ const axiosInstance = axios.create({
     transformResponse: [data => {
         if (typeof data === 'string') {
             try {
-                return JSONBig({ useNativeBigInt: true, alwaysParseAsBig: true }).parse(data);
+                return JSONBig({ useNativeBigInt: true }).parse(data);
             } catch (e) {
                 return data;
             }

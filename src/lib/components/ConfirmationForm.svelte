@@ -3,7 +3,7 @@
     import { ApiError } from '$lib/api/client';
     import { goto } from '$app/navigation';
 
-    /** @type {number} User ID from URL */
+    /** @type {bigint} User ID from URL */
     export let userId;
     /** @type {string} Confirmation token from URL */
     export let token;
@@ -52,11 +52,11 @@
 
         try {
             await confirmRegistration({
-                id: Number(userId), 
+                id: userId,
                 token: token,
-                name: name.trim(), // This is the Display Name
+                name: name.trim(),
                 password: password,
-                discriminator: discriminator.trim() // This is the Unique Username
+                discriminator: discriminator.trim()
             });
             successMessage = 'Account confirmed successfully! You can now log in.';
             setTimeout(() => {
